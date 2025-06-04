@@ -26,23 +26,45 @@
       </div>
 
       <button type="submit" :disabled="isSubmitting || Object.keys(errors).length > 0">
-        {{ isSubmitting ? 'Saving...' : 'Save Goal' }}
+        {{ isSubmitting ? 'Generating curriculum...' : 'Save Goal & Generate Plan' }}
       </button>
     </form>
 
     <div v-if="successMessage" class="success-message">
       {{ successMessage }}
     </div>
+
+    <div v-if="curriculumStore.curriculum" class="curriculum-preview">
+      <h3>Your 4-Week Learning Plan</h3>
+      <div v-for="(week, index) in curriculumStore.curriculum.weeks" :key="index" class="week-card">
+        <h4>Week {{ index + 1 }}: {{ week.title }}</h4>
+        <p>{{ week.description }}</p>
+        <h5>Tasks:</h5>
+        <ul>
+          <li v-for="(task, taskIndex) in week.tasks" :key="taskIndex">
+            {{ task }}
+          </li>
+        </ul>
+        <h5>Resources:</h5>
+        <ul>
+          <li v-for="(resource, resourceIndex) in week.resources" :key="resourceIndex">
+            {{ resource }}
+          </li>
+        </ul>
+      </div>
+    </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, reactive } from 'vue';
+import { ref, reactive, onMounted, onUnmounted } from 'vue';
 import { useAuthStore } from '../stores/auth';
+import { useCurriculumStore } from '../stores/curriculum';
 import { doc, setDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../firebase/config';
 
 const authStore = useAuthStore();
+const curriculumStore = useCurriculumStore();
 const goalText = ref('');
 const isRecording = ref(false);
 const isSubmitting = ref(false);
@@ -52,6 +74,16 @@ const errors = reactive({
 });
 
 let recognition: SpeechRecognition | null = null;
+
+onMounted(() => {
+  if (authStore.user) {
+    curriculumStore.subscribeToCurriculum(authStore.user);
+  }
+});
+
+onUnmounted(() => {
+  curriculumStore.unsubscribeFromCurriculum();
+});
 
 // Initialize speech recognition if supported
 if ('SpeechRecognition' in window || 'webkitSpeechRecognition' in window) {
@@ -115,7 +147,7 @@ const handleSubmit = async () => {
       createdAt: serverTimestamp()
     });
 
-    successMessage.value = 'Goal saved successfully!';
+    successMessage.value = 'Goal saved! Generating your learning plan...';
     goalText.value = '';
 
     // Clear success message after 3 seconds
@@ -132,7 +164,7 @@ const handleSubmit = async () => {
 
 <style scoped>
 .learning-goals {
-  max-width: 600px;
+  max-width: 800px;
   margin: 0 auto;
   padding: 20px;
 }
@@ -204,5 +236,35 @@ button.recording {
   background-color: #d4edda;
   color: #155724;
   border-radius: 4px;
+}
+
+.curriculum-preview {
+  margin-top: 40px;
+}
+
+.week-card {
+  background-color: #f8f9fa;
+  border-radius: 8px;
+  padding: 20px;
+  margin-bottom: 20px;
+}
+
+.week-card h4 {
+  margin-top: 0;
+  color: #2c3e50;
+}
+
+.week-card h5 {
+  margin: 16px 0 8px;
+  color: #42b883;
+}
+
+.week-card ul {
+  margin: 0;
+  padding-left: 20px;
+}
+
+.week-card li {
+  margin-bottom: 4px;
 }
 </style>
