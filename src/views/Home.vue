@@ -3,6 +3,7 @@
     <h1>Welcome</h1>
     <div v-if="authStore.user">
       <p>Welcome back, {{ authStore.user.displayName || authStore.user.email }}!</p>
+      <LearningGoals />
       <router-link to="/profile" class="profile-link">View Profile</router-link>
     </div>
     <div v-else>
@@ -17,6 +18,7 @@
 
 <script setup lang="ts">
 import { useAuthStore } from '../stores/auth';
+import LearningGoals from '../components/LearningGoals.vue';
 
 const authStore = useAuthStore();
 </script>
